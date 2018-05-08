@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Vue JS Product Filters</title>
+  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.16/vue.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.5/lodash.min.js"></script>
+
+  <link rel="stylesheet" type="text/css" href="./assets/main.css">
+</head>
+
+<body>
+  <div class="container">
+    <div class="row" id="app">
+      <div class="row">
+        <div class="col-md-12">
+          <div class="row searchBar">
+            <div class="col-md-10">
+              <input type="text" v-on:keyup.enter="searchProduct" id="searchInputText" placeholder="Search Products" class="form-control input-lg" v-model="searchInput">
+            </div>
+            <div class="col-md-2">
+              <a href="#" class="btn btn-primary btn-block btn-lg" @click="searchProduct">
+                <i class="fa fa-search"></i> Search</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="row">
+        <div class="col-md-3 filterSideBar">
+          <div class="card">
+            <div class="card-contents">
+
+              <datafieldselect class="filterComponents" label="Category" filterkey="categories" :filtervalue="filterAll.categories"
+                @call-method="callfilteredproducts"></datafieldselect>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-contents">
+              <datafieldcheckbox class="filterComponents" label="search keyword" filterkey="search_keyword" :filtervalue="filterAll.search_keyword"
+                @call-method="callfilteredproducts"></datafieldcheckbox>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-contents">
+              <datafieldcheckbox class="filterComponents" label="CATEGORY" filterkey="categories" :filtervalue="filterAll.categories" @call-method="callfilteredproducts"></datafieldcheckbox>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-contents">
+              <datafieldslider label="PRICE" filterkey="min_val" filterkeysecond="max_val" :filtervalue="filterAll.price_1" @call-method2="callfilteredproducts2">
+              </datafieldslider>
+              <br>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-9" style="background-color: #fafafa">
+          
+          <datafieldobject data_api="https://349d6e5f56299a9f7b9ff68ccd099977.us-west-2.aws.found.io:9243/pdm1/_search?size=100" @get-data="getUrl">
+            <template scope="item">
+              <datafieldlist :items="filteredProducts">
+                <template scope="item">
+                  <div class="col-md-4 col-lg-4 col-sm-6 col-xs-12">
+                    <div class="card" style="height: 550px;">
+                      <div class="fieldListRepeater">
+                      </div>
+                      <template scope="item">
+                      </template>
+                      <datafieldimage class="c3802">
+                        <img src="" :src="'http://image.promoworld.ca/migration-api-hidden-new/web/images/' + item.text._source.default_image" style="width:100%"
+                        />
+                      </datafieldimage>
+                      <div class="card-contents">
+                        <div class="grid12">
+                          <datafieldtext :text="item.text._source.product_name">
+                            <p>Insert your text here</p>
+                          </datafieldtext>
+                          <datafieldtext :text="'$ '+item.text._source.price_1">
+                            <p>Insert your text here</p>
+                          </datafieldtext>
+                          <a class="btn btn-primary" href="#">Buy </a>
+                          <br>
+                          <br>
+                        </div>
+                      </div>
+                </template>
+              </datafieldlist>
+        
+            </template>
+          </datafieldobject>
+          </div>
+          </div>
+        </div>
+      </div>
+      
+      
+
+      <script type="text/javascript">
+
+        const dfGroup = Vue.component('datafieldgroup', {
+          template: `<div class="grid">
+                      <template v-for="item in items1"><slot :text="item"></slot>
+                      </template>
+                    </div>`,
+          props: ['items1', 'data_schema', 'data_api', 'draggable'],
+          computed: {},
+          data: function() {
+            return {
+              items: this.items1
+            }
+          },
+          watch: {
+            items: function() {}
+          },
+          created() {
+
+            let self = this;
+            let api_url;
+            let api_listen;
+            if (this.data_schema == undefined) {
+              var a = this.data_api.lastIndexOf("/");
+              api_url = this.data_api.substring(0, a)
+              api_listen = this.data_api.substring(a + 2, this.data_api.length)
+
+            } else {
+              let schemaVal = this.data_schema.split(":");
+              let connString = $.trim(schemaVal[0]);
+              let schemaName = $.trim(schemaVal[1]);
+              api_url = "http://api.flowz.com/dbetl"
+              api_listen = 'schema/' + connString + '?schemaname=' + schemaName;
+            }
+          },
+          mounted() {
+            this.getData();
+            this.$emit('get-data', this.data_api);
+          },
+          methods: {
+            getData() {
+              let self = this;
+              if (this.data_schema != undefined) {
+                if (this.data_schema.length > 0) {
+                  this.data_schema;
+                  let schemaVal = this.data_schema.split(":");
+                  let connString = $.trim(schemaVal[0]);
+                  let schemaName = $.trim(schemaVal[1]);
+                  let apiUrl = 'http://api.flowz.com/dbetl/schema/' + connString + '?schemaname=' + schemaName;
+                  $.getJSON(apiUrl, function(data) {
+                    this.products.push(data)
+                    self.items = data;
+                  });
+                } else {
+                  $.getJSON(this.data_api, function(data) {
+                    this.products.push(data)
+                    self.items = data;
+                  });
+                }
+              } else {
+                var settings = {
+                  "async": true,
+                  "crossDomain": true,
+                  "url": this.data_api,
+                  "method": "POST",
+                  "headers": {
+                    "Authorization": "Basic MDU0MzY0ZDQtM2EwYi00MzZhLTgxNDQtMDRjYmZmYjA1ODdkOjJjNzllYzAwLTFiMGUtMTFlOC04YThlLTczMTFiODY2YzZiNA=="
+                  }
+                }
+
+                $.ajax(settings).done(function(response) {
+                  console.log("response", response)
+                  self.products = response
+                  self.items = response
+                });
+              }
+            },
+            search(searchEmail) {
+              for (let i = 0; i < this.items.length; i++) {
+                if (this.items[i].email == searchEmail) {
+                  return i;
+                }
+              }
+            }
+          }
+        });
+
+        const dfObj = Vue.component('datafieldobject', {
+          template: `<div class="dfgroup">
+                      <div class="dfrepeate"><slot :text="items"></slot></div>
+                    </div>`,
+          props: ['data_api', 'data_schema'],
+          computed: {},
+          data: function() {
+            return {
+              items: []
+            }
+          },
+          mounted() {
+            this.getData()
+            this.$emit('get-data', this.data_api);
+          },
+          methods: {
+            getData() {
+              let self = this;
+              if (this.data_schema != undefined) {
+                if (this.data_schema.length > 0) {
+                  this.data_schema;
+                  let schemaVal = this.data_schema.split(":");
+                  let connString = $.trim(schemaVal[0]);
+                  let schemaName = $.trim(schemaVal[1]);
+                  let apiUrl = 'http://api.flowz.com/dbetl/schema/' + connString + '?schemaname=' + schemaName;
+                  $.getJSON(apiUrl, function(data) {
+                    self.items = data;
+                  });
+                } else {
+                  $.getJSON(this.data_api, function(data) {
+                    self.items = data;
+                  });
+                }
+              } else {
+                var settings = {
+                  "async": true,
+                  "crossDomain": true,
+                  "url": this.data_api,
+                  "method": "POST",
+                  "headers": {
+                    "Authorization": "Basic MDU0MzY0ZDQtM2EwYi00MzZhLTgxNDQtMDRjYmZmYjA1ODdkOjJjNzllYzAwLTFiMGUtMTFlOC04YThlLTczMTFiODY2YzZiNA=="
+                  }
+                }
+
+                $.ajax(settings).done(function(response) {
+                  self.products = response
+                  self.items = response
+                });
+              }
+            }
+          }
+        });
+
+        const Table = Vue.component('datafieldtable', {
+          template: `<Table :columns="columns1" :data="data1"></Table>`,
+          props: ['column_value', 'data_api'],
+          computed: {},
+          data: function() {
+            return {
+              columns1: [],
+              data1: []
+            }
+          },
+          mounted() {
+            this.getData()
+          },
+          methods: {
+            getData() {
+              let self = this;
+              console.log("data_api", this.data_api)
+              let arr_column = []
+              var str = this.column_value;
+              var res = str.split(",");
+              for (let index = 0; index < res.length; index++) {
+                let data = {
+                  "title": res[index],
+                  "key": res[index]
+                }
+                arr_column.push(data)
+              }
+              self.columns1 = arr_column;
+              $.getJSON(this.data_api, function(data) {
+                console.log(data)
+                self.data1 = data;
+              });
+
+            }
+          }
+        });
+
+        const dfList = Vue.component('datafieldlist', {
+          template: '<div><div v-for="item in items"><slot :text="item"></slot></div></div>',
+          props: ['items']
+        });
+
+        const dfText = Vue.component('datafieldtext', {
+          template: '<h3><b>{{text}}</b></h3>',
+          props: ['text']
+        });
+
+        const dfSlider = Vue.component('datafieldslider', {
+          template: `<div><h4><strong>{{label}}</strong></h4>
+                      <input type="text" id="amount" readonly style="border:0; color:#f6931f; font-weight:bold;" @change="filterProducts">
+                  <div id="product-filter-slider-range" ></div></div>`,
+          props: ['label', 'filtervalue', 'filterkey', 'filterkeysecond'],
+          data: {
+            minPrice: '',
+            maxPrice: ''
+          },
+          methods: {
+            filterProducts() {
+              setTimeout(() => {
+                this.$emit('call-method2', this.minPrice, this.maxPrice, this.filterkey, this.filterkeysecond);
+              }, 0);
+
+            }
+          },
+          created() {
+            setTimeout(async() => {
+              console.log("this.filtervalue", this.filtervalue)
+              let minPrice = _.min(this.filtervalue[0]);
+              let maxPrice = _.max(this.filtervalue[0]);
+              this.minPrice = minPrice;
+              this.maxPrice = maxPrice;
+
+              let self = this;
+              // Range slider
+              await $(() => {
+                $("#product-filter-slider-range").slider({
+                  range: true,
+                  min: 0,
+                  max: this.maxPrice + 10,
+                  values: [this.minPrice, this.maxPrice],
+                  slide: function(event, ui) {
+                    self.minPrice = $("#product-filter-slider-range").slider("values", 0);
+                    self.maxPrice = $("#product-filter-slider-range").slider("values", 1);
+                    self.filterProducts();
+                    $("#amount").val("$" + ui.values[0] + " - $" + ui.values[1]);
+                  }
+                });
+                $("#amount").val("$" + $("#product-filter-slider-range").slider("values", 0) +
+                  " - $" + $("#product-filter-slider-range").slider("values", 1));
+              });
+
+              this.filterProducts();
+            }, 5000);
+
+          }
+
+        });
+
+        const dfCheckBox = Vue.component('datafieldcheckbox', {
+          template: `<div>
+                              <h4><strong>{{label}}</strong></h4>
+                              <hr />
+                            <ul class="categoriesFilter">
+                              <li v-for="category in filtervalue"><label><input type="checkbox" :id="category" :value="category" v-model="currentSelection" @click="filterProducts()"><span class="categoryName">{{category}}</span></label></li>
+                            </ul> 
+                        </div>`,
+          data() {
+            return {
+              products: null,
+              selectedFilters: {},
+              currentSelection: [],
+              varFilter: null
+            }
+          },
+          props: ['filtervalue', 'label', 'filterkey'],
+          methods: {
+            filterProducts() {
+
+              setTimeout(() => {
+
+                this.$emit('call-method', this.currentSelection, this.filterkey);
+              }, 0);
+
+            }
+          },
+          created() {
+            // console.log("filtervalue...checkbox", this.filtervalue)
+            let self = this
+            $('datafieldcheckbox').each(function(index, value) {
+              let varFilter = $(this).attr(":filtervalue").substring($(this).attr(":filtervalue").indexOf(".") + 1, $(this).attr(":filtervalue").length);
+              self.varFilter = varFilter;
+              self.selectedFilters[varFilter] = [];
+              self.currentSelection = self.selectedFilters[varFilter];
+              // self.selectedFilters[varFilter] 
+            });
+          },
+          mounted() {}
+        });
+
+        const dfSelect = Vue.component('datafieldselect', {
+          template: `<div>
+                              <h4><strong>{{label}}</strong></h4>
+                              <hr />
+                              <select class="form-control" @change="filterProducts" v-model="selectedCateogory">
+                                <option disabled selected value="defaut">Select</option>
+                                <option :value="category" v-for="category in filtervalue">{{category}}</option>
+                              </select>
+                            </div>`,
+          data() {
+            return {
+              products: null,
+              selectedFilters: {},
+              currentSelection: [],
+              varFilter: null,
+              selectedCateogory: null
+            }
+          },
+          props: ['filtervalue', 'label', 'filterkey'],
+          methods: {
+            filterProducts() {
+              this.currentSelection = [];
+              this.currentSelection.push(this.selectedCateogory);
+              this.$emit('call-method', this.currentSelection, this.filterkey);
+            }
+          },
+          created() {
+            let self = this;
+            $('datafieldselect').each(function(index, value) {
+              let varFilter = $(this).attr(":filtervalue").substring($(this).attr(":filtervalue").indexOf(".") + 1, $(this).attr(":filtervalue").length);
+              self.varFilter = varFilter;
+              self.selectedFilters[varFilter] = [];
+              self.currentSelection = self.selectedFilters[varFilter];
+
+              console.log('Filter value : ', self.filtervalue);
+            });
+
+            this.selectedCateogory = 'defaut';
+          },
+          mounted() {}
+        });
+
+        new Vue({
+          el: "#app",
+          data() {
+            return {
+              products: null,
+              searchfilter: {},
+              filteredProducts: [],
+              colors: [],
+              categories: [],
+              minPrice: null,
+              maxPrice: null,
+              filterAll: null,
+              selectedFilters: {},
+              // selectedFilters: {
+              //  categories: [],
+              //  colors: [],
+              //  minPrice: null,
+              //  maxPrice: null
+              // },
+              dataCat: {},
+              dataSlider: {},
+              dataColor: [],
+              dataFilterKeys: [],
+              dataSliderKey: [],
+              minValue: null,
+              maxValue: null,
+              searchInput: '',
+              apiUrl: null
+            }
+          },
+          components: {
+            dfGroup,
+            dfList,
+            dfText,
+            dfObj,
+            Table,
+            dfCheckBox,
+            dfSlider,
+            dfSelect
+          },
+          methods: {
+            searchProduct() {
+              if (this.searchInput == '') {
+                alert('Enter search Criteria');
+              } else {
+                var settings = {
+                  "async": true,
+                  "url": this.apiUrl,
+                  "method": "POST",
+                  "headers": {
+                    "Authorization": "Basic MDU0MzY0ZDQtM2EwYi00MzZhLTgxNDQtMDRjYmZmYjA1ODdkOjJjNzllYzAwLTFiMGUtMTFlOC04YThlLTczMTFiODY2YzZiNA=="
+                  },
+                  "data": " {\n\t\"query\": {\n\t  \"multi_match\" : {\n\t    \"query\":    \"" + this.searchInput + "\", \n\t    \"fields\": [\"search_keyword\",\"categories\",\"product_name\",\"sku\"] \n\t  }\n\t}\n\t}"
+                }
+                let self_ = this;
+                $.ajax(settings).done(function(data) {
+                  self_.products = data.hits.hits;
+                  self_.filteredProducts = self_.products;
+                });
+              }
+
+            },
+            filterAll2() {
+              let objFilter = {};
+              let self = this
+              $('datafieldcheckbox').each(function(index, value) {
+                let varFilter = $(this).attr(":filtervalue").substring($(this).attr(":filtervalue").indexOf(".") + 1, $(this).attr(":filtervalue").length);
+                console.log('varFilter', varFilter)
+
+                objFilter[varFilter] = []
+                self.dataCat[varFilter] = []
+                objFilter[varFilter] = self.dataCat[varFilter]
+
+                self.dataFilterKeys.push(varFilter);
+
+              });
+              ///console.log('self.dataFilterKeys :: ', self.dataFilterKeys)
+
+              $('datafieldslider').each(function(index, value) {
+                let varFilter = $(this).attr(":filtervalue").substring($(this).attr(":filtervalue").indexOf(".") + 1, $(this).attr(":filtervalue").length);
+                // objFilter[varFilter] = []
+                self.dataSlider[varFilter] = []
+                objFilter[varFilter] = self.dataSlider[varFilter]
+                self.dataSliderKey.push(varFilter);
+              });
+              console.log(objFilter)
+
+              return objFilter;
+            },
+
+            getUrl(self) {
+              this.apiUrl = self;
+              let self_ = this;
+              let filterBox = {};
+              // $.getJSON(self, function (data) {
+              var settings = {
+                "async": true,
+                "crossDomain": true,
+                "url": self,
+                "method": "POST",
+                "headers": {
+                  "Authorization": "Basic MDU0MzY0ZDQtM2EwYi00MzZhLTgxNDQtMDRjYmZmYjA1ODdkOjJjNzllYzAwLTFiMGUtMTFlOC04YThlLTczMTFiODY2YzZiNA=="
+                }
+              }
+
+              $.ajax(settings).done(function(data) {
+                // console.log("response", response)
+                // self.products = response
+                // self.items = response
+
+                console.log('products :: ', data.hits.hits)
+                self_.products = data.hits.hits;
+                self_.filteredProducts = self_.products;
+
+                // for arrays
+                self_.dataFilterKeys.forEach(function(dfKey) {
+                  filterBox[dfKey] = [];
+                  console.log('dfKey :: ', dfKey)
+                  self_.filteredProducts.forEach(function(fProd) {
+                    filterBox[dfKey] = filterBox[dfKey].concat(fProd._source[dfKey]);
+
+                    filterBox[dfKey] = _.uniq(filterBox[dfKey])
+                  });
+
+                  for (let index = 0; index < filterBox[dfKey].length; index++) {
+                    self_.dataCat[dfKey].push(filterBox[dfKey][index]);
+                  }
+                });
+                console.log('self_.dataCat', self_.dataCat)
+
+                //for single value
+                let slider_temp = {}
+                  // console.log("......price", self_.products[0]._source.min_price)
+                self_.dataSliderKey.forEach(function(dfKey) {
+                  slider_temp[dfKey] = [];
+                  self_.filteredProducts.forEach(function(fProd) {
+                      // console.log("self_profuct", fProd._source[dfKey])
+                      slider_temp[dfKey] = slider_temp[dfKey].concat(fProd._source[dfKey]);
+                    })
+                    // console.log("slider_temp", slider_temp[dfKey])
+                  self_.dataSlider[dfKey].push(slider_temp[dfKey])
+                })
+              });
+              // });
+            },
+            callfilteredproducts(data, key) {
+              // this.selectedFilters = data
+              this.selectedFilters[key] = [];
+              this.selectedFilters[key] = data;
+              // console.log("Category after price filter: ", this.selectedFilters);
+              this.filterProducts();
+            },
+            callfilteredproducts2(minValue, maxValue, minVal, maxVal) {
+              this.minValue = minValue;
+              this.maxValue = maxValue;
+              // this.selectedFilters[minVal] = null;
+              // this.selectedFilters[minVal] = minValue;
+              // this.selectedFilters[maxVal] = null;
+              // this.selectedFilters[maxVal] = maxValue;
+              // console.log('Selected filters for price : ', this.selectedFilters);
+              this.filterProducts();
+            },
+            filterProducts() {
+              setTimeout(async() => {
+
+                console.log('this.selectedFilters', this.selectedFilters);
+                let keys = Object.keys(this.selectedFilters);
+
+                let allEmpty = [];
+
+                for (let i = 0; i < keys.length; i++) {
+                  if (this.selectedFilters[keys[i]].length > 0) {
+                    allEmpty.push(true);
+                  } else {
+                    allEmpty.push(false);
+                  }
+                }
+
+                if (($.inArray(true, allEmpty)) != -1) {
+
+                  let self = this;
+
+                  await keys.forEach(function(filterKey) {
+
+                    let filterdProducts = _.filter(self.products, function(o) {
+                      // console.log('o._source[filterKey]', o._source[filterKey]);
+
+                      let flg = false;
+                      let searchFilterKey = self.selectedFilters[filterKey];
+                      searchFilterKey.forEach(function(sKey) {
+                        console.log('sKey', sKey, '====', filterKey);
+                        let ind = o._source[filterKey].indexOf(sKey)
+                          // console.log('ind', ind);
+                        if (ind >= 0) {
+                          flg = true;
+                        }
+                      })
+                      if (flg) {
+                        // return o;
+                        return o._source.price_1 >= self.minValue && o._source.price_1 <= self.maxValue;
+                      }
+                      // return o._source.min_price >= self.minValue && o._source.min_price <= self.maxValue;
+                    });
+
+                    // console.log(filterdProducts);
+                    self.filteredProducts = filterdProducts
+
+                  });
+
+                  console.log('Output data: ', self.filteredProducts);
+
+                } else {
+                  let self = this;
+                  this.filteredProducts = _.filter(this.products, function(o) {
+                    return o._source.price_1 >= self.minValue && o._source.price_1 <= self.maxValue;
+                    // return o; 
+                  });
+                }
+
+              }, 0);
+            }
+
+          },
+
+          mounted() {
+            var self__ = this;
+          },
+          created() {
+            this.filterAll = this.filterAll2();
+
+            let self = this;
+
+            $('#searchInputText').keypress(function(e) {
+              var key = e.which;
+              console.log(key)
+              if (key == 13) // the enter key code
+              {
+                self.searchProduct();
+                return false;
+              }
+            });
+
+          }
+        })
+      </script>
+</body>
+
+</html>
